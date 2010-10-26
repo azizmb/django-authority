@@ -88,8 +88,13 @@ class BasePermission(object):
                 continue
             # first check Django's permission system
             if self.user:
-                perm = self.get_django_codename(check, obj, generic)
-                perms = perms or self.user.has_perm(perm)
+                try:
+                    perm = self.get_django_codename(check, obj, generic)
+                    app_label, pname = perm.split('.')
+                    djPerm = DjangoPermission.objects.get(content_type=ContentType.objects.get_for_model(obj), codename=pname)
+                    perms = perms or self.user.user_permissions.filter(pk=djPerm.pk)
+                except:
+                    pass
             perm = self.get_codename(check, obj, generic)
             # then check authority's per object permissions
             if not isinstance(obj, ModelBase) and isinstance(obj, self.model):

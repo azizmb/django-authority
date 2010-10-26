@@ -54,38 +54,38 @@ class BehaviourTest(TestCase):
         self.assertTrue(self.check.delete_user(self.user))
 
 class AssignBehaviourTest(TestCase):
-   """
-   self.user will be given:
-   - permission add_user (test_add),
-   - permission delete_user for him (test_delete),
-   - all existing codenames permissions: a/b/c/d (test_all),
-   """
-   fixtures = ['tests.json',]
+    """
+    self.user will be given:
+    - permission add_user (test_add),
+    - permission delete_user for him (test_delete),
+    - all existing codenames permissions: a/b/c/d (test_all),
+    """
+    fixtures = ['tests.json',]
 
-   def setUp(self):
-       self.user = User.objects.get(username='jezdez')
-       self.check = UserPermission(self.user)
+    def setUp(self):
+        self.user = User.objects.get(username='jezdez')
+        self.check = UserPermission(self.user)
 
-   def test_add(self):
-       result = self.check.assign(check='add_user')
+    def test_add(self):
+        result = self.check.assign(check='add_user')
 
-       self.assertTrue(isinstance(result[0], DjangoPermission))
-       self.assertTrue(self.check.add_user())
+        self.assertTrue(isinstance(result[0], DjangoPermission))
+        self.assertTrue(self.check.add_user())
 
-   def test_delete(self):
-       result = self.check.assign(content_object=self.user, check='delete_user')
+    def test_delete(self):
+        result = self.check.assign(content_object=self.user, check='delete_user')
 
-       self.assertTrue(isinstance(result[0], Permission))
-       self.assertFalse(self.check.delete_user())
-       self.assertTrue(self.check.delete_user(self.user))
+        self.assertTrue(isinstance(result[0], Permission))
+        self.assertFalse(self.check.delete_user())
+        self.assertTrue(self.check.delete_user(self.user))
 
-   def test_all(self):
-       result = self.check.assign(content_object=self.user)
-       self.assertTrue(isinstance(result, list))
-       self.assertTrue(self.check.browse_user(self.user))
-       self.assertTrue(self.check.delete_user(self.user))
-       self.assertTrue(self.check.add_user(self.user))
-       self.assertTrue(self.check.change_user(self.user))
+    def test_all(self):
+        result = self.check.assign(content_object=self.user)
+        self.assertTrue(isinstance(result, list))
+        self.assertTrue(self.check.browse_user(self.user))
+        self.assertTrue(self.check.delete_user(self.user))
+        self.assertTrue(self.check.add_user(self.user))
+        self.assertTrue(self.check.change_user(self.user))
 
 class GenericAssignBehaviourTest(TestCase):
     """
@@ -135,3 +135,25 @@ class AssignExceptionsTest(TestCase):
         except NotAModel:
             return True
         self.fail()
+
+        
+class BackendTest(TestCase):
+    """
+    Tests that exceptions are thrown if assign() was called with inconsistent arguments.
+    """
+    fixtures = ['tests.json',]
+
+    def setUp(self):
+        self.user = User.objects.get(username='jezdez')        
+        self.check = UserPermission(self.user)
+
+    def test_model_permission(self):
+        result = self.check.assign(check='add_user')
+        self.assertTrue(isinstance(result[0], DjangoPermission))
+        self.assertTrue(self.user.has_perm('user_permission.add_user'))
+        
+    def test_object_permission(self):
+        result = self.check.assign(content_object=self.user, check='delete_user')
+        self.assertTrue(isinstance(result[0], Permission))
+        self.assertFalse(self.user.has_perm('user_permission.delete_user'))
+        self.assertTrue(self.user.has_perm('user_permission.delete_user', self.user))
